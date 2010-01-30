@@ -1,30 +1,14 @@
-Contact
-=======
+= Dependencies
 
-Denis Knauf
+incomplete yet.
 
-* Denis dot Knauf at gmail dot com
-* https://www.denkn.at
-* jabber: DEac at jabber dot ccc dot de
-
-License
-=======
-
-AGPL 3.0
-
-Dependencies
-============
-
-System
-------
-
-(incomplete)
+== System
 
 * ruby >= 1.9 (tested: 1.9.1,  untested: 1.8 (maybe compatible))
 * libdb >= 4 (tested: 4.7)
 * C-Compiler
 
-Debian/Ubuntu:
+=== Debian/Ubuntu:
 
 	# aptitude ruby1.9.1 ruby1.9.1-dev libdb4.7-dev rubygems1.9.1
 
@@ -35,8 +19,7 @@ Change shebash in s2l.rb to
 	#!/usr/bin/ruby1.9.1
 
 
-Ruby Gems
----------
+== Ruby Gems
 
 * BDB >= 0.2.2 (patch needed - gem included)
 * UUIDTools
@@ -46,14 +29,15 @@ Install: (in syslog2logan-dir)
 	# gem install bdb-0.2.2.gem uuidtools
 
 
-Install
-=======
+= Install
 
-No install needed/possible yet.
+	# gem build syslog2logan.gemspec
+	# gem install syslog2logan-*.gem
 
 
-Run
-===
+= Usage
+
+== Start
 
 Simple:
 
@@ -64,15 +48,13 @@ Or deamonized:
 	# sh -c 'nohup ./s2l.rb </dev/null >/dev/null 2>&1 &' &
 
 
-Use it
-======
+== Use it
 
 Your Syslog-server should send everythin via tcp to port 1514.
 UDP and TLS aren't possible yet.
 If you want to use any of these,  you can proxy it via a local syslog-ng.
 
-syslog-ng
----------
+=== syslog-ng
 
 You need these lines:
 
@@ -94,7 +76,6 @@ You need these lines:
 You should use your default source.
 
 
-rsyslog
--------
+=== rsyslog
 
 I don't know.  Please tell me,  if you can.
