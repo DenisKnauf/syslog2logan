@@ -6,12 +6,12 @@ begin
   Jeweler::Tasks.new do |gem|
     gem.name = "syslog2logan"
     gem.summary = %Q{Syslog-Server}
-    gem.description = %Q{Syslog-Server which logs to Berkeley Databases}
+    gem.description = %Q{Syslog-Server which logs to Berkeley Databases (No SyslogDaemon)}
     gem.email = "Denis.Knauf@gmail.com"
     gem.homepage = "http://github.com/DenisKnauf/syslog2logan"
     gem.authors = ["Denis Knauf"]
-    gem.files = ["README", "VERSION", "lib/**/*.rb", "test/**/*.rb"]
-    gem.require_paths = ["lib"]
+    gem.files = ["README", "VERSION", "bin/**/*", "lib/**/*.rb", "test/**/*.rb"]
+    gem.require_paths = ["bin"]
 		gem.add_dependency 'sbdb'
 		gem.add_dependency 'select'
   end

@@ -11,19 +11,21 @@ Gem::Specification.new do |s|
   s.authors = ["Denis Knauf"]
   s.date = %q{2010-01-30}
   s.default_executable = %q{s2l.rb}
-  s.description = %q{Syslog-Server which logs to Berkeley Databases}
+  s.description = %q{Syslog-Server which logs to Berkeley Databases (No SyslogDaemon)}
   s.email = %q{Denis.Knauf@gmail.com}
   s.executables = ["s2l.rb"]
   s.extra_rdoc_files = [
-    "README"
+    "LICENSE",
+     "README"
   ]
   s.files = [
     "README",
-     "VERSION"
+     "VERSION",
+     "bin/s2l.rb"
   ]
   s.homepage = %q{http://github.com/DenisKnauf/syslog2logan}
   s.rdoc_options = ["--charset=UTF-8"]
-  s.require_paths = ["lib"]
+  s.require_paths = ["bin"]
   s.rubygems_version = %q{1.3.5}
   s.summary = %q{Syslog-Server}
 
@@ -32,9 +34,15 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
+      s.add_runtime_dependency(%q<sbdb>, [">= 0"])
+      s.add_runtime_dependency(%q<select>, [">= 0"])
     else
+      s.add_dependency(%q<sbdb>, [">= 0"])
+      s.add_dependency(%q<select>, [">= 0"])
     end
   else
+    s.add_dependency(%q<sbdb>, [">= 0"])
+    s.add_dependency(%q<select>, [">= 0"])
   end
 end
 
