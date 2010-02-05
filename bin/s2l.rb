@@ -65,21 +65,16 @@ class Rotate
 	end
 
 	def db k
-		h = hashing k
-		db = @dbs[h]
-		unless db
-			n = @rdb[ h]
-			if n
-				n = UUIDTools::UUID.parse_raw n
-			else
-				n = UUIDTools::UUID.timestamp_create
-				@rdb[ h] = n.raw
-			end
-			info :open => n.to_s
-			db = @env.open SBDB::Btree, n.to_s, 'logs', Bdb::DB_CREATE | Bdb::DB_AUTO_COMMIT, nil
-			@dbs[h] = db
+		n = @rdb[ h]
+		if n
+			n = UUIDTools::UUID.parse_raw n
+		else
+			n = UUIDTools::UUID.timestamp_create
+			@rdb[ h] = n.raw
 		end
-		db
+		info :open => n.to_s
+		@env[ n.to_s, 'logs', SBDB::Btree, SBDB::CREATE | SBDB::AUTO_COMMIT]
+		@env[ "#{n}.newids", 'logs', SBDB::Queue, SBDB::CREATE | SBDB::AUTO_COMMIT]
 	end
 
 	def sync
@@ -132,29 +127,25 @@ info :create => {:home => $conf[:home]}
 Dir.mkdir $conf[:home]  rescue Errno::EEXIST
 
 info :open => SBDB::Env
-SBDB::Env.new( $conf[:home], SBDB::CREATE | SBDB::INIT_TXN | SBDB::INIT_LOCK | SBDB::INIT_LOG | SBDB::INIT_MPOOL | Bdb::DB_AUTO_COMMIT) do |dbenv|
-	info :open => SBDB::Btree
-	dbenv.open( SBDB::Btree, 'rotates.db', 'rotates', SBDB::CREATE | Bdb::DB_AUTO_COMMIT, nil) do |rdb|
-		info :open => Rotate
-		dbs = Rotate.new rdb
-		info :open => S2L
-		serv = S2L.new :sock => TCPServer.new( *$conf[:server]), :dbs => dbs
-		retries = Retries.new *$conf[:retries]
-		begin
-			info :run => serv
-			serv.run
-			info :shutdown => :stoped
-		rescue Interrupt
-			info :shutdown => :interrupted
-		rescue SignalException
-			info :shutdown => :signal
-		rescue Object
-			error :exception=>$!, :backtrace=>$!.backtrace
-			retries.retry? and retry
-			fatal "Too many retries (#{retries.count})"
-			info :shutdown => :fatal
-		end
-		info :close => rdb
+SBDB::Env.new( $conf[:home], SBDB::CREATE | SBDB::Env::INIT_TRANSACTION | Bdb::DB_AUTO_COMMIT) do |dbenv|
+	info :open => Rotate
+	dbs = Rotate.new dbenv[ 'rotates.db', 'rotates', SBDB::Btree, SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
+	info :open => S2L
+	serv = S2L.new :sock => TCPServer.new( *$conf[:server]), :dbs => dbs
+	retries = Retries.new *$conf[:retries]
+	begin
+		info :run => serv
+		serv.run
+		info :shutdown => :stoped
+	rescue Interrupt
+		info :shutdown => :interrupted
+	rescue SignalException
+		info :shutdown => :signal
+	rescue Object
+		error :exception=>$!, :backtrace=>$!.backtrace
+		retries.retry? and retry
+		fatal "Too many retries (#{retries.count})"
+		info :shutdown => :fatal
 	end
 	info :close => dbenv
 end
