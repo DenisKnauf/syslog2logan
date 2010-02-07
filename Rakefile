@@ -10,7 +10,7 @@ begin
     gem.email = "Denis.Knauf@gmail.com"
     gem.homepage = "http://github.com/DenisKnauf/syslog2logan"
     gem.authors = ["Denis Knauf"]
-    gem.files = ["README", "VERSION", "bin/**/*", "lib/**/*.rb", "test/**/*.rb"]
+    gem.files = ["README.md", "VERSION", "bin/**/*", "lib/**/*.rb", "test/**/*.rb"]
     gem.require_paths = ["bin"]
 		gem.add_dependency 'sbdb'
 		gem.add_dependency 'select'
