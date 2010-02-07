@@ -10,8 +10,7 @@ System
 * libdb >= 4 (tested: 4.7)
 * C-Compiler
 
-Debian/Ubuntu:
-~~~~~~~~~~~~~~
+### Debian/Ubuntu:
 
 	# aptitude ruby1.9.1 ruby1.9.1-dev libdb4.7-dev rubygems1.9.1
 
@@ -62,8 +61,7 @@ Your Syslog-server should send everythin via tcp to port 1514.
 UDP and TLS aren't possible yet.
 If you want to use any of these,  you can proxy it via a local syslog-ng.
 
-syslog-ng
-~~~~~~~~~
+### syslog-ng
 
 You need these lines:
 
@@ -85,7 +83,6 @@ You need these lines:
 You should use your default source.
 
 
-rsyslog
-~~~~~~~
+### rsyslog
 
 I don't know.  Please tell me,  if you can.
