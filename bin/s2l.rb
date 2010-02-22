@@ -47,7 +47,7 @@ class Rotate
 	def initialize db, &e
 		@rdb, @env, @dbs = db, db.home, {}
 		self.hash = e || lambda {|k|
-			[UUIDTools::UUID.parse_raw( k).timestamp.to_i/60/60/24].pack 'N'
+			[k.timestamp.to_i/60/60/24].pack 'N'
 		}
 	end
 
@@ -64,17 +64,24 @@ class Rotate
 		@hash_func.call k
 	end
 
-	def db k
+	def db_name id
+		h = hashing id
 		n = @rdb[ h]
 		if n
 			n = UUIDTools::UUID.parse_raw n
 		else
 			n = UUIDTools::UUID.timestamp_create
 			@rdb[ h] = n.raw
+			info :create => n.to_s
 		end
-		info :open => n.to_s
-		@env[ n.to_s, 'logs', SBDB::Btree, SBDB::CREATE | SBDB::AUTO_COMMIT]
-		@env[ "#{n}.newids", 'logs', SBDB::Queue, SBDB::CREATE | SBDB::AUTO_COMMIT]
+	end
+
+	def db n
+		@env[ n.to_s, nil, SBDB::Btree, SBDB::CREATE | SBDB::AUTO_COMMIT]
+	end
+
+	def queue n
+		@env[ "#{n}.newids", nil, SBDB::Queue, SBDB::CREATE | SBDB::AUTO_COMMIT]
 	end
 
 	def sync
@@ -90,7 +97,9 @@ class Rotate
 	def put v
 		id = UUIDTools::UUID.timestamp_create
 		s = [0x10, v].pack 'Na*'
-		db(id.raw)[ id.raw] = s
+		n = db_name id
+		db( n)[ id.raw] = s
+		queue( n).push id.raw
 	end
 	alias emit put
 end
@@ -129,7 +138,7 @@ Dir.mkdir $conf[:home]  rescue Errno::EEXIST
 info :open => SBDB::Env
 SBDB::Env.new( $conf[:home], SBDB::CREATE | SBDB::Env::INIT_TRANSACTION | Bdb::DB_AUTO_COMMIT) do |dbenv|
 	info :open => Rotate
-	dbs = Rotate.new dbenv[ 'rotates.db', 'rotates', SBDB::Btree, SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
+	dbs = Rotate.new dbenv[ 'rotates.db', nil, SBDB::Btree, SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
 	info :open => S2L
 	serv = S2L.new :sock => TCPServer.new( *$conf[:server]), :dbs => dbs
 	retries = Retries.new *$conf[:retries]
