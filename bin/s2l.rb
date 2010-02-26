@@ -74,14 +74,15 @@ class Rotate
 			@rdb[ h] = n.raw
 			info :create => n.to_s
 		end
+		n
 	end
 
 	def db n
-		@env[ n.to_s, nil, SBDB::Btree, SBDB::CREATE | SBDB::AUTO_COMMIT]
+		@env[ n.to_s, :type => SBDB::Btree, :flags => SBDB::CREATE | SBDB::AUTO_COMMIT]
 	end
 
 	def queue n
-		@env[ "#{n}.newids", nil, SBDB::Queue, SBDB::CREATE | SBDB::AUTO_COMMIT]
+		@env[ "newids.queue", :type => SBDB::Queue, :flags => SBDB::CREATE | SBDB::AUTO_COMMIT, :re_len => 16]
 	end
 
 	def sync
@@ -129,7 +130,7 @@ end
 $conf = {
 	:home => 'logs',
 	:server => [ '', 1514],
-	:retries => [10, 10]
+	:retries => [1,1] # [10, 10]
 }
 
 info :create => {:home => $conf[:home]}
@@ -138,7 +139,7 @@ Dir.mkdir $conf[:home]  rescue Errno::EEXIST
 info :open => SBDB::Env
 SBDB::Env.new( $conf[:home], SBDB::CREATE | SBDB::Env::INIT_TRANSACTION | Bdb::DB_AUTO_COMMIT) do |dbenv|
 	info :open => Rotate
-	dbs = Rotate.new dbenv[ 'rotates.db', nil, SBDB::Btree, SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
+	dbs = Rotate.new dbenv[ 'rotates.db', :type => SBDB::Btree, :flags => SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
 	info :open => S2L
 	serv = S2L.new :sock => TCPServer.new( *$conf[:server]), :dbs => dbs
 	retries = Retries.new *$conf[:retries]
