@@ -13,6 +13,7 @@ begin
     gem.files = ["README.md", "VERSION", "bin/**/*", "lib/**/*.rb", "test/**/*.rb"]
     gem.require_paths = ["bin"]
 		gem.add_dependency 'sbdb'
+		gem.add_dependency 'robustserver'
 		gem.add_dependency 'select'
   end
   Jeweler::GemcutterTasks.new

@@ -5,8 +5,11 @@ require 'sbdb'
 require 'uuidtools'
 require 'socket'
 require 'select'
+require 'robustserver'
 
 class S2L < Select::Server
+	attr_accessor :dbs
+
 	def init p
 		super p
 		@dbs = p[:dbs]
@@ -105,58 +108,28 @@ class Rotate
 	alias emit put
 end
 
-class Retries
-	attr_accessor :max, :range
-	attr_reader :count, :last
-
-	def initialize max = 10, range = 10
-		@max, @range, @count, @last = max, range, 0, Time.now
+class Main < RobustServer
+	def initialize conf
+		super
+		@conf = conf
+		info :open => S2L
+		@serv = S2L.new :sock => TCPServer.new( *@conf[:server])
+		info :create => {:home => @conf[:home]}
+		Dir.mkdir @conf[:home]  rescue Errno::EEXIST
 	end
 
-	def retry?
-		@count = @last + @range > Time.now ? @count + 1 : 1
-		@last = Time.now
-		@count < @max
-	end
-
-	def run ex, &e
-		begin e.call *args
-		rescue ex
-			retries.retry? and retry
+	def run
+		info :open => SBDB::Env
+		SBDB::Env.new( @conf[:home], SBDB::CREATE | SBDB::Env::INIT_TRANSACTION | Bdb::DB_AUTO_COMMIT) do |dbenv|
+			info :open => Rotate
+			@serv.dbs = Rotate.new dbenv[ 'rotates.db', :type => SBDB::Btree, :flags => SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
+			retries = Retries.new *@conf[:retries]
+			info :run => @serv
+			@serv.run
 		end
 	end
 end
 
-$conf = {
-	:home => 'logs',
-	:server => [ '', 1514],
-	:retries => [1,1] # [10, 10]
-}
+Main.main :home => 'logs', :server => [ '', 1514], :retries => [1,1] # [10, 10]
 
-info :create => {:home => $conf[:home]}
-Dir.mkdir $conf[:home]  rescue Errno::EEXIST
-
-info :open => SBDB::Env
-SBDB::Env.new( $conf[:home], SBDB::CREATE | SBDB::Env::INIT_TRANSACTION | Bdb::DB_AUTO_COMMIT) do |dbenv|
-	info :open => Rotate
-	dbs = Rotate.new dbenv[ 'rotates.db', :type => SBDB::Btree, :flags => SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
-	info :open => S2L
-	serv = S2L.new :sock => TCPServer.new( *$conf[:server]), :dbs => dbs
-	retries = Retries.new *$conf[:retries]
-	begin
-		info :run => serv
-		serv.run
-		info :shutdown => :stoped
-	rescue Interrupt
-		info :shutdown => :interrupted
-	rescue SignalException
-		info :shutdown => :signal
-	rescue Object
-		error :exception=>$!, :backtrace=>$!.backtrace
-		retries.retry? and retry
-		fatal "Too many retries (#{retries.count})"
-		info :shutdown => :fatal
-	end
-	info :close => dbenv
-end
 info :halted
