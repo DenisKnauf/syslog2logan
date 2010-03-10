@@ -116,14 +116,22 @@ class Main < RobustServer
 		@serv = S2L.new :sock => TCPServer.new( *@conf[:server])
 		info :create => {:home => @conf[:home]}
 		Dir.mkdir @conf[:home]  rescue Errno::EEXIST
+		@sigs[:INT] = @sigs[:TERM] = method(:shutdown)
+	end
+
+	def shutdown s = nil
+		$stderr.puts [:signal, s, Signal[s]].inspect
+		@serv.close
+		exit 0
 	end
 
 	def run
 		info :open => SBDB::Env
-		SBDB::Env.new( @conf[:home], SBDB::CREATE | SBDB::Env::INIT_TRANSACTION | Bdb::DB_AUTO_COMMIT) do |dbenv|
+		SBDB::Env.new( @conf[:home],
+				log_config: SBDB::Env::LOG_IN_MEMORY | SBDB::Env::LOG_AUTO_REMOVE,
+				flags: SBDB::CREATE | SBDB::Env::INIT_TXN | Bdb::DB_INIT_MPOOL) do |dbenv|
 			info :open => Rotate
 			@serv.dbs = Rotate.new dbenv[ 'rotates.db', :type => SBDB::Btree, :flags => SBDB::CREATE | Bdb::DB_AUTO_COMMIT]
-			retries = Retries.new *@conf[:retries]
 			info :run => @serv
 			@serv.run
 		end
