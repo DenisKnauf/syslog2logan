@@ -1,11 +1,14 @@
 #!/usr/bin/ruby
 
+require 'logger'
 require 'rubygems'
 require 'sbdb'
 require 'uuidtools'
 require 'socket'
 require 'select'
 require 'robustserver'
+
+$logger = Logger.new $stderr
 
 class S2L < Select::Server
 	attr_accessor :dbs
@@ -16,22 +19,17 @@ class S2L < Select::Server
 	end
 
 	def event_new_client a
+		debug :connection => {:new => a}
 		{ :clientclass => S2L::Socket, :dbs => @dbs }
 	end
 end
 
 module Kernel
-	def debug( *p)  logger :debug, *p  end
-	def info( *p)  logger :info, *p  end
-	def warn( *p)  logger :warn, *p  end
-	def error( *p)  logger :error, *p  end
-	def fatal( *p)  logger :fatal, *p  end
-
-	def logger l, *p
-		p = p.first  if p.length == 1
-		$stderr.puts [Time.now, l, p].inspect
-	end
-	private :logger
+	def debug( *p)  $logger.debug *p  end
+	def info( *p)  $logger.info *p  end
+	def warn( *p)  $logger.warn *p  end
+	def error( *p)  $logger.error *p  end
+	def fatal( *p)  $logger.fatal *p  end
 end
 
 class S2L::Socket < Select::Socket
@@ -41,6 +39,7 @@ class S2L::Socket < Select::Socket
 	end
 
 	def event_line v
+		debug :line => v
 		@dbs.emit v
 	end
 	alias emit event_line
@@ -111,16 +110,22 @@ end
 class Main < RobustServer
 	def initialize conf
 		super
+		@logger = $logger
 		@conf = conf
 		info :open => S2L
 		@serv = S2L.new :sock => TCPServer.new( *@conf[:server])
 		info :create => {:home => @conf[:home]}
 		Dir.mkdir @conf[:home]  rescue Errno::EEXIST
 		@sigs[:INT] = @sigs[:TERM] = method(:shutdown)
+		@sigs[:USR1] = method(:state)
+	end
+
+	def state s = nil
+		debug :server => @serv
 	end
 
 	def shutdown s = nil
-		$stderr.puts [:signal, s, Signal[s]].inspect
+		info :shutdown => [s, Signal[s]]
 		@serv.close
 		exit 0
 	end
