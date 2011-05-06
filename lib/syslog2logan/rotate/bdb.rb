@@ -8,39 +8,67 @@ require 'socket'
 require 'select'
 require 'robustserver'
 require 'active_support'
-require 'syslog2logan/rotate'
 
-$logger = Logger.new $stderr
-
-class S2L < Select::Server
-	attr_accessor :dbs
-
-	def init p
-		super p
-		@dbs = p[:dbs]
+class Rotate::BDB
+	def initialize db, &e
+		@rdb, @env, @dbs = db, db.home, {}
+		self.hash = e || lambda {|k|
+			[k.timestamp.to_i/1.hour].pack 'N'
+		}
 	end
 
-	def event_new_client a
-		logger.debug :connection => {:new => a}
-		{ :clientclass => S2L::Socket, :dbs => @dbs }
-	end
-end
-
-module Kernel
-	def logger() $logger end
-end
-
-class S2L::Socket < Select::Socket
-	def init opts
-		@dbs = opts[ :dbs]
-		super opts
+	def hash= e
+		self.hash &e
 	end
 
-	def event_line v
-		logger.debug :line => v
-		@dbs.emit v
+	def hash &e
+		@hash_func = e  if e
+		@hash_func
 	end
-	alias emit event_line
+
+	def hashing k
+		@hash_func.call k
+	end
+
+	def db_name id
+		h = hashing id
+		n = @rdb[ h]
+		if n
+			n = UUIDTools::UUID.parse_raw n
+		else
+			n = UUIDTools::UUID.timestamp_create
+			@rdb[ h] = n.raw
+			logger.info :create => n.to_s
+		end
+		n
+	end
+
+	def db n
+		@env[ n.to_s, :type => SBDB::Btree, :flags => SBDB::CREATE | SBDB::AUTO_COMMIT]
+	end
+
+	def queue n
+		@env[ "newids.queue", :type => SBDB::Queue, :flags => SBDB::CREATE | SBDB::AUTO_COMMIT, :re_len => 16]
+	end
+
+	def sync
+		@dbs.each {|n, db| db.sync }
+		@rdb.sync
+	end
+
+	def close
+		@dbs.each {|n, db| db.close 0 }
+		@rdb.close 0
+	end
+
+	def put v
+		id = UUIDTools::UUID.timestamp_create
+		s = [0x10, v].pack 'Na*'
+		n = db_name id
+		db( n)[ id.raw] = s
+		queue( n).push id.raw
+	end
+	alias emit put
 end
 
 class Main < RobustServer
@@ -78,7 +106,3 @@ class Main < RobustServer
 		end
 	end
 end
-
-Main.main :home => 'logs', :server => [ '', 1514], :retries => [1,1] # [10, 10]
-
-logger.info :halted
