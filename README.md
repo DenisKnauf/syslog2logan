@@ -6,7 +6,6 @@ System
 
 * ruby >= 1.9 (tested: 1.9.1,  untested: 1.8 (maybe compatible))
 * tokyocabinet
-* rufus-tokyo
 
 ### Debian/Ubuntu:
 
@@ -21,16 +20,6 @@ Change shebash in s2l.rb to
 or
 
 	#!/usr/bin/env ruby1.9.1
-
-Ruby Gems
----------
-
-You should install *dk-bdb* manualy:
-
-	# gem install rufus-tokyo
-
-Every other dependencies will be installed automaticaly,
-if you install syslog2logan via gem.
 
 Install
 =======
