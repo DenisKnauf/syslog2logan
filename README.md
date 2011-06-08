@@ -5,12 +5,12 @@ System
 ------
 
 * ruby >= 1.9 (tested: 1.9.1,  untested: 1.8 (maybe compatible))
-* libdb >= 4.7 (tested: 4.7/4.8)
-* C-Compiler (tested: gcc 4.4.1)
+* tokyocabinet
+* rufus-tokyo
 
 ### Debian/Ubuntu:
 
-	# aptitude ruby1.9.1 ruby1.9.1-dev libdb4.7-dev rubygems1.9.1
+	# aptitude ruby1.9.1 ruby1.9.1-dev rubygems1.9.1 libtokyocabinet-dev libtokyotyrant-dev
 
 If you've installed ruby1.8 (yet),  you should run ruby1.9.1 instead ruby and
 gem1.9.1 instead gem.
@@ -27,7 +27,7 @@ Ruby Gems
 
 You should install *dk-bdb* manualy:
 
-	# gem install dk-bdb -- --with-db-dir=/usr --with-db-include=/usr/include
+	# gem install rufus-tokyo
 
 Every other dependencies will be installed automaticaly,
 if you install syslog2logan via gem.
