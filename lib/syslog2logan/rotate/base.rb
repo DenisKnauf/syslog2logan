@@ -2,7 +2,7 @@
 
 require 'logger'
 require 'uuidtools'
-require 'active_support'
+require 'active_support/core_ext'
 
 class Rotate
 	# open_db_func: must returns a db-object with #[] and #[]=.
@@ -10,19 +10,19 @@ class Rotate
 	def initialize hash_func = nil, &open_db_func
 		@dbs = Hash.new {|h,k| h[k] = open_db_func.call(k) }
 		hash_func ||= lambda {|k| [k.timestamp.to_i/1.day].pack 'N' }
-		define_method :hashing, &hash_func
+		define_singleton_method :hashing, &hash_func
 		@rotate = @dbs['rotate']
 		@queue = @dbs['queue']
 	end
 
 	def db_name id
 		h = hashing id
-		n = @rdb[ h]
+		n = @rotate[ h]
 		if n
 			n = UUIDTools::UUID.parse_raw n
 		else
 			n = UUIDTools::UUID.timestamp_create
-			@rdb[ h] = n.raw
+			@rotate[ h] = n.raw
 			logger.info :create => n.to_s
 		end
 		n
